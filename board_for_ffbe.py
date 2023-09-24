@@ -16,13 +16,16 @@ alive_attackers = []
 alive_defenders = []
 new_attackers = None
 
-attacker_board = None
-col_for_attacker_board = ['남공', '생존', '공횟', '총별', '1공별', '2공별', '1공상대', '2공상대']
-defender_board = None
-col_for_defender_board = ['잔별', '방횟', '1방', '2방', '3방']
 
+col_for_attacker_board = ['남공', '생존', '공횟', '총별', '1공별', '2공별', '1공상대', '2공상대']
+col_for_defender_board = ['잔별', '방횟', '1방', '2방', '3방']
+columns_for_battle_log = ["attack_count", "attacker", "defender", "stars"]
+columns_for_attackers = ['guild_name', 'member_name']
+
+attacker_board = None
+defender_board = None
 ref_date = None
-opp_guild_name = None
+
 
 # session variables
 if 'battle_log_msg' not in st.session_state:
@@ -30,13 +33,16 @@ if 'battle_log_msg' not in st.session_state:
 battle_log_msg = st.session_state.battle_log_msg
 if 'attack_count' not in st.session_state:
     st.session_state.attack_count = 0
-columns_for_battle_log = ["attack_count", "attacker", "defender", "stars"]
 if 'battle_log_df' not in st.session_state:
     st.session_state.battle_log_df = pd.DataFrame(columns=columns_for_battle_log)
-columns_for_attackers = ['guild_name', 'member_name']
+    st.session_state.battle_log_df.reset_index(inplace = True, drop = True)
 if 'attackers' not in st.session_state:
     st.session_state.attackers = pd.DataFrame(columns=columns_for_attackers)
-    st.session_state.attackers.reset_index(inplace=True)
+    st.session_state.attackers.reset_index(inplace=True, drop=True)
+if 'opp_guild_name' not in st.session_state:
+    st.session_state.opp_guild_name = None
+opp_guild_name = st.session_state.opp_guild_name
+
 # global variables
 bm = board_manger.BoardManager()
 
@@ -100,6 +106,7 @@ def write_attackers(attackers_df:pd.DataFrame, guild_name=None):
         attackers_to_write = attackers_to_write[columns_to_write]
         bm.write_attackers(attackers_to_write, date.today())
 def fetch_attackers(guild_name, ref_date=None):
+    # print(f"Fetching attackers. Guild_name: {guild_name}, Ref_Date: {ref_date}")
     res_df = bm.fetch_attackers(guild_name, ref_date)
     return res_df
 def process_logs():
@@ -107,6 +114,7 @@ def process_logs():
     global alive_attackers, alive_defenders, defender_board, battle_log_msg
     # Defender Board
     for d in defenders['defender_name']:
+        print(battle_log_df)
         defence_count = int(battle_log_df[battle_log_df['defender'] == d]['stars'].count())
         remaining_stars = int(3 - battle_log_df[battle_log_df['defender'] == d]['stars'].sum())
         lost_stars_list = battle_log_df[battle_log_df['defender'] == d]['stars'].tolist()
@@ -139,7 +147,7 @@ def process_logs():
         attack_count = len(prev_battle_log_for_attacker) + 1
         remaining_attack_count = 1 if survival and (attack_count<=1) else 0
         if len(prev_battle_log_for_attacker):
-            print(prev_battle_log_for_attacker)
+            # print(prev_battle_log_for_attacker)
             first_ac_stars = prev_battle_log_for_attacker['stars'].iloc[0]
             first_attack_defender = prev_battle_log_for_attacker['defender'].iloc[0]
             second_ac_stars = stars
@@ -174,69 +182,14 @@ def process_logs():
     alive_attackers.sort()
     alive_defenders.sort()
 
-# Define the function for Page 1
-def page1():
-    st.title("Page 1")
-    st.write("This is Page 1")
-
-# Define the function for Page 2
 def display_board():
-    st.title("Page 2")
-    st.write("This is Page 2")
-
-def main():
-    global bm, defenders, alive_attackers, alive_defenders, attacker_board, defender_board, ref_date, opp_guild_name, new_attackers
-    # Screen setting
-    st.header("공격자")
-    divide_screen_as_default()
-    new_attackers = st.data_editor(st.session_state.attackers, num_rows="dynamic", width=1000, hide_index=True)
-    # Data input
-
-    # process_logs()
-    # # Alive Attackers&Defenders
-    # indexer_alive_attackers = attacker_board['남공'] > 0
-    # indexer_alive_defenders = defender_board['잔별'] > 0
-    # alive_attackers = list(attacker_board[indexer_alive_attackers].index)
-    # alive_defenders = list(defender_board[indexer_alive_defenders].index)
-    # alive_attackers.sort()
-    # alive_defenders.sort()
-
-    # st.header("로그 기록")
-    # divide_screen_as_default()
-    # attacker = cl0.selectbox(f"Attacker({len(alive_attackers)})", [""] + alive_attackers)
-    # defender = cl1.selectbox(f"Defender({len(alive_defenders)})", [""] + alive_defenders)
-    # stars = cl2.radio("Acq. Stars ", [0, 1, 2, 3])
-    new_battle_log_df = st.data_editor(st.session_state.battle_log_df, num_rows="dynamic", hide_index=True,
-                                        width=1000)
-    # kwargs = {
-    #     "attacker": attacker,
-    #     "defender": defender,
-    #     "stars": stars,
-    # }
-    # if cl3.button("로그 입력", on_click=write_log, kwargs=kwargs):
-    #     write_log(attacker=attacker, defender=defender, stars=stars)
-    divide_screen_as_default()
-
-    if cl0.button("로그 저장"):
-        new_battle_log_df['match_date'] = date.today()
-        bm.write_log_to_server(new_battle_log_df)
-        st.session_state.battle_log_df = new_battle_log_df
-    if cl1.button("로그 불러오기"):
-        st.session_state.battle_log_df = bm.fetch_guild_battle_log(ref_date)[st.session_state.battle_log_df.columns]
-        st.session_state.attack_count = st.session_state.battle_log_df['attack_count'].iloc[-1]
-    if cl2.button("로그 초기화"):
-        if not st.session_state.battle_log_df.empty:
-            st.session_state.battle_log_df = st.session_state.battle_log_df.iloc[0:0]
-        bm.delete_log_in_server(ref_date)
-
+    global ally_point, ally_remaining_attacks, opp_member_count
     # Create a number input for integers
-    ally_point = int(cl0.number_input("WA획득점수:", value=0, step=1, format="%d"))
-    ally_remaining_attacks = int(cl1.number_input("WA남은공격:", value=0, step=1, format="%d"))
-    opp_member_count = int(cl2.number_input("상대인원:", value=30, step=1, format="%d"))
+    divide_screen_as_default()
 
     # Opponent's Calculation
     opp_point = attacker_board['총별'].sum()
-    opp_remaining_attacks = opp_member_count*2 - attacker_board['공횟'].sum()
+    opp_remaining_attacks = opp_member_count * 2 - attacker_board['공횟'].sum()
 
     # Point Board
     divide_screen_as_default()
@@ -255,16 +208,39 @@ def main():
     centered_header(ally_remaining_attacks, cl0)
     centered_header(opp_remaining_attacks, cl2)
 
-    ally_avg = round(ally_point/(60-ally_remaining_attacks), 2)
-    opp_avg = round(opp_point/(60-opp_remaining_attacks), 2)
+    ally_avg = round(ally_point / (60 - ally_remaining_attacks), 2)
+    try:
+        opp_avg = round(opp_point / (60 - opp_remaining_attacks), 2)
+    except:
+        opp_avg = 0
     centered_header("평균", cl1)
     centered_header(ally_avg, cl0)
     centered_header(opp_avg, cl2)
 
+    centered_header("방어판")
+    dboard_sorted = defender_board.sort_values(by=['잔별', '방횟'], ascending=[False, False])
+    dboard_to_show = dboard_sorted.applymap(lambda x: '' if pd.isna(x) else '{:.0f}'.format(x))
+
+    unattacked_decks_to_show = dboard_to_show[dboard_sorted['방횟']==0]
+    three_star_decks_to_show = dboard_to_show[(dboard_sorted['방횟']!=0) & (dboard_sorted['잔별']==3)]
+    two_star_decks_to_show = dboard_to_show[(dboard_sorted['방횟']!=0) & (dboard_sorted['잔별']==2)]
+    one_star_decks_to_show = dboard_to_show[(dboard_sorted['방횟']!=0) & (dboard_sorted['잔별']==1)]
+    no_star_decks_to_show = dboard_to_show[(dboard_sorted['방횟']!=0) & (dboard_sorted['잔별']==0)]
+    st.subheader(f"새삥덱 - {len(unattacked_decks_to_show)}" )
+    st.subheader(list(unattacked_decks_to_show.index))
+    st.subheader(f"3잔별 - {len(three_star_decks_to_show)}" )
+    st.table(three_star_decks_to_show)
+    st.subheader(f"2잔별 - {len(two_star_decks_to_show)}" )
+    st.table(two_star_decks_to_show)
+    st.subheader(f"1잔별 - {len(one_star_decks_to_show)}" )
+    st.table(one_star_decks_to_show)
+    st.subheader(f"마감덱 - {len(no_star_decks_to_show)}" )
+    st.table(no_star_decks_to_show)
+
     centered_header("공격판")
     aboard_to_show = attacker_board.sort_values(by=['남공', '총별'], ascending=[False, False])
 
-    new_deck_to_show = list(aboard_to_show[aboard_to_show['남공']==2].index)
+    new_deck_to_show = list(aboard_to_show[aboard_to_show['남공'] == 2].index)
     st.subheader(f"공격전(새삥) - {len(new_deck_to_show)}")
     st.subheader(new_deck_to_show)
 
@@ -273,25 +249,70 @@ def main():
     # st.table(remain_1_deck_to_show)
     st.table(remain_1_deck_to_show[["1공별", "1공상대"]])
 
-    fin_deck_to_show = aboard_to_show[(aboard_to_show['남공'] == 0) & (aboard_to_show['생존']==True)].fillna('')
-    st.subheader(f"2공 후 생존(2공 성공) - {len(fin_deck_to_show)}")
+    fin_deck_to_show = aboard_to_show[(aboard_to_show['남공'] == 0) & (aboard_to_show['생존'] == True)].fillna('')
+    st.subheader(f"2공 성공 - {len(fin_deck_to_show)}")
     st.table(fin_deck_to_show[["총별", '1공별', '2공별', '1공상대', '2공상대']])
 
     fail_2_deck_to_show = aboard_to_show[(aboard_to_show['공횟'] == 2) & (aboard_to_show['생존'] == False)].fillna('')
-    st.subheader(f"2공 후 사망(2공 실패) - {len(fail_2_deck_to_show)}")
+    st.subheader(f"2공 실패 - {len(fail_2_deck_to_show)}")
     st.table(fail_2_deck_to_show[["총별", '1공별', '2공별', '1공상대', '2공상대']])
 
     fail_1_deck_to_show = aboard_to_show[(aboard_to_show['공횟'] == 1) & (aboard_to_show['생존'] == False)].fillna('')
     st.subheader(f"1공 실패 - {len(fail_1_deck_to_show)}")
     st.table(fail_1_deck_to_show[['1공별', '1공상대']])
 
-    centered_header("방어판")
-    dboard_to_show = defender_board.sort_values(by=['잔별','방횟'], ascending=[False, False])
-    dboard_to_show=dboard_to_show.applymap(lambda x: '' if pd.isna(x) else '{:.0f}'.format(x))
-    st.table(dboard_to_show.iloc[0:15])
-    st.table(dboard_to_show.iloc[15:])
+    st.header("로그")
     st.table(st.session_state.battle_log_msg)
 
+def setting_page():
+    global bm, defenders, alive_attackers, alive_defenders, attacker_board, defender_board, ref_date, opp_guild_name, new_attackers
+    # Screen setting
+    st.header(f"공격자 ({len(st.session_state.attackers)})")
+    st.session_state.attackers.reset_index(inplace=True, drop=True)
+    new_attackers = st.data_editor(st.session_state.attackers, num_rows="dynamic", width=1000, hide_index=True)
+    divide_screen_as_default()
+    try:
+        cl0.text(f"# of attackers: {len(new_attackers)}")
+    except:
+        pass
+    if cl1.button("공격자 불러오기"):
+        res_df = fetch_attackers(guild_name=opp_guild_name, ref_date=ref_date)
+        print(res_df)
+        if res_df is not None:
+            st.session_state.attackers = res_df[columns_for_attackers]
+            if not opp_guild_name:
+                st.session_state.opp_guild_name = res_df['guild_name'].iloc[0]
+                print(st.session_state.opp_guild_name)
+        else:
+            st.session_state.attackers = pd.DataFrame(columns=columns_for_attackers)
+        st.session_state.attackers.reset_index(inplace=True, drop=True)
+    if cl2.button("공격자 저장하기"):
+        # print(new_attackers)
+        write_attackers(attackers_df=new_attackers, guild_name=opp_guild_name)
+        st.session_state.attackers = new_attackers
+        try:
+            st.subheader(f"{len(st.session_state.attackers['member_name'].tolist())} names Saved.")
+            st.write(f"Saved names: {st.session_state.attackers['member_name'].tolist()}")
+        except:
+            pass
+    divide_screen_as_default()
+    new_battle_log_df = st.data_editor(st.session_state.battle_log_df, num_rows="dynamic", hide_index=True,
+                                        width=1000)
+    divide_screen_as_default()
+
+    if cl0.button("로그 저장"):
+        new_battle_log_df['match_date'] = date.today()
+        bm.write_log_to_server(new_battle_log_df)
+        st.session_state.battle_log_df = new_battle_log_df.reset_index(drop=True)
+    if cl1.button("로그 불러오기"):
+        loaded_df = bm.fetch_guild_battle_log(ref_date)[columns_for_battle_log]
+        st.session_state.battle_log_df = loaded_df.reset_index(drop=True)
+        st.session_state.attack_count = st.session_state.battle_log_df['attack_count'].iloc[-1]
+    if cl2.button("로그 초기화"):
+        if not st.session_state.battle_log_df.empty:
+            st.session_state.battle_log_df = st.session_state.battle_log_df.iloc[0:0]
+            st.session_state.battle_log_df.reset_index(drop=True, inplace=True)
+        bm.delete_log_in_server(ref_date)
 def preprocessor():
     global bm, defenders, alive_attackers, alive_defenders, attacker_board, defender_board, ref_date, opp_guild_name
     process_logs()
@@ -299,34 +320,31 @@ if __name__ == '__main__':
     # Preprocessor
     preprocessor()
     # Create a sidebar with options to navigate between pages
-    page = st.sidebar.selectbox("Select a page", ["Page 1", "Page 2"])
+    page = st.sidebar.selectbox("Select a page", ["Setting", "Display"])
     # Sidebar
     with st.sidebar:
-        st.button("Refresh")
         ref_date = st.date_input("기준날짜")
+        opp_guild_name = st.text_input("길드이름", st.session_state.opp_guild_name)
 
-        opp_guild_name = st.text_input("길드이름")
-        if st.button("공격자 불러오기"):
-            res_df = fetch_attackers(guild_name=opp_guild_name, ref_date=ref_date)
-            if res_df is not None:
-                st.session_state.attackers = res_df[columns_for_attackers]
-            else:
-                st.session_state.attackers = pd.DataFrame(columns=columns_for_attackers)
-            st.session_state.attackers.reset_index(inplace=True)
-        if st.button("공격자 저장하기"):
-            write_attackers(attackers_df=new_attackers, guild_name=opp_guild_name)
-            st.session_state.attackers = new_attackers
-            st.dataframe(st.session_state.attackers, width=1000)
-
-        st.header("로그 기록")
+        st.subheader(f"로그 기록 - {st.session_state.attack_count}")
         attacker = st.selectbox(f"Attacker({len(alive_attackers)})", [""] + alive_attackers)
         defender = st.selectbox(f"Defender({len(alive_defenders)})", [""] + alive_defenders)
-        stars = st.radio("Acq. Stars ", [0, 1, 2, 3])
-        if st.button("로그 입력"):
+        remaining_stars = int(defender_board.loc[defender]['잔별']) if defender else 3
+        sb_cl = st.columns(2)
+        sb_cl0 = sb_cl[0]
+        sb_cl1 = sb_cl[1]
+        stars = sb_cl0.radio("Acq. Stars ", [0, 1, 2, 3], index=remaining_stars)
+        write_log_button = sb_cl1.button("로그 입력")
+        if write_log_button:
             write_log(attacker=attacker, defender=defender, stars=stars)
+            # process_logs()
+        sb_cl1.button("Refresh")
+        ally_point = int(sb_cl0.number_input("WA획득점수:", value=0, step=1, format="%d"))
+        ally_remaining_attacks = int(sb_cl0.number_input("WA남은공격:", value=0, step=1, format="%d"))
+        opp_member_count = int(sb_cl0.number_input("상대인원:", value=30, step=1, format="%d"))
 
     # Display the selected page
-    if page == "Page 1":
-        main()
-    elif page == "Page 2":
+    if page == "Setting":
+        setting_page()
+    elif page == "Display":
         display_board()

@@ -48,7 +48,7 @@ def fetch_data_with_col_names_as_df_with_value(sql, value):
     conn.close()
     df = pd.DataFrame(res, columns=col_names)
     return df
-def execute_with_values(sql, values=None):
+def execute_sql_with_values(sql, values=None):
     conn = connect_db()
     cursor = conn.cursor()
     if values == None:
@@ -79,7 +79,7 @@ def write_df_to_server(table_name, df_to_write:pd.DataFrame):
     VALUES ({str_for_vals})"""
     print(sql)
     for i, d in df_to_write.iterrows():
-        execute_with_values(sql, tuple(d.tolist()))
+        execute_sql_with_values(sql, tuple(d.tolist()))
 class BoardManager:
     def __init__(self):
         pass
@@ -88,33 +88,42 @@ class BoardManager:
         table_to_write = 'guild_battle_log_tb'
         sql_for_delete = f"""DELETE FROM {table_to_write} WHERE match_date = %s"""
         print(sql_for_delete)
-        execute_with_values(sql_for_delete, (ref_date,))
+        execute_sql_with_values(sql_for_delete, (ref_date,))
     def write_log_to_server(self, df_to_write:pd.DataFrame):
         table_to_write = 'guild_battle_log_tb'
         if not df_to_write.empty:
             sql_for_delete = f"""DELETE FROM {table_to_write} WHERE match_date = %s"""
-            execute_with_values(sql_for_delete, (df_to_write['match_date'][0],))
-        write_df_to_server(table_to_write, df_to_write)
+            execute_sql_with_values(sql_for_delete, (df_to_write['match_date'].iloc[0],))
+            write_df_to_server(table_to_write, df_to_write)
     def fetch_guild_battle_log(self, ref_date):
         table_to_fetch = 'guild_battle_log_tb'
         sql = f"""SELECT * FROM {table_to_fetch} WHERE match_date = '{ref_date}'"""
         return fetch_data_as_df(sql)
     def fetch_attackers(self, guild_name, ref_date=None):
-        latest_date_sql = "SELECT MAX(match_date) AS latest_date FROM opponent_guild_members_tb WHERE guild_name=%s"
-        query_value = (guild_name,)
-        res = execute_with_values(latest_date_sql, query_value)
-        latest_date = None
-        for r in res:
-            latest_date = r[0]
-        print("Latest_date:", latest_date)
-        if not latest_date:
-            return None
-        else:
-            value = (guild_name, latest_date)
-            sql = f"""select * from opponent_guild_members_tb where guild_name = %s AND match_date=%s"""
+        if (not guild_name) and (ref_date == date.today()):
+            # 길드이름이 없는 경우, 오늘의 Data를 받아온다.
+            # print('-'*100)
+            col_to_fetch = "guild_name, member_name"
+            sql = f"""select {col_to_fetch} from opponent_guild_members_tb where match_date=%s"""
+            value = (ref_date,)
             df = fetch_data_with_col_names_as_df_with_value(sql, value)
-            df.reset_index(inplace=True)
             return df
+        else:
+            latest_date_sql = "SELECT MAX(match_date) AS latest_date FROM opponent_guild_members_tb WHERE guild_name=%s"
+            query_value = (guild_name,)
+            res = execute_sql_with_values(latest_date_sql, query_value)
+            latest_date = None
+            for r in res:
+                latest_date = r[0]
+            # print("Latest_date:", latest_date)
+            if not latest_date:
+                return None
+            else:
+                value = (guild_name, latest_date)
+                col_to_fetch = "guild_name, member_name"
+                sql = f"""select {col_to_fetch} from opponent_guild_members_tb where guild_name = %s AND match_date=%s"""
+                df = fetch_data_with_col_names_as_df_with_value(sql, value)
+                return df
     def fetch_defenders(self):
         sql = """select * from guild_members_tb where inuse='y';"""
         data, columns = fetch_data_with_col_names(sql)
@@ -122,23 +131,23 @@ class BoardManager:
         return df
     def write_attackers(self, attackers:pd.DataFrame=None, t_date=None):
         if t_date == date.today():
-            print("Today is the day, writing opponent's guild members.")
+            # print("Today is the day, writing opponent's guild members.")
             sql = """DELETE FROM opponent_guild_members_tb WHERE match_date = %s"""
             value = (t_date,)
-            print(sql)
-            print(value)
-            execute_with_values(sql, value)
+            # print(sql)
+            # print(value)
+            execute_sql_with_values(sql, value)
             col_names_to_write = attackers.columns
             cols = ','.join(col_names_to_write)
             val_str = ','.join(['%s']*len(col_names_to_write))
-            print(cols)
-            print(val_str)
+            # print(cols)
+            # print(val_str)
             for i, a in attackers.iterrows():
                 sql = f"""INSERT INTO opponent_guild_members_tb ({cols}) 
                 VALUES ({val_str})
                 """
-                print(sql)
+                # print(sql)
                 values = tuple(a.tolist())
-                execute_with_values(sql, values)
+                execute_sql_with_values(sql, values)
         else:
             pass
