@@ -100,8 +100,8 @@ class BoardManager:
         sql = f"""SELECT * FROM {table_to_fetch} WHERE match_date = '{ref_date}'"""
         return fetch_data_as_df(sql)
     def fetch_attackers(self, guild_name, ref_date=None):
-        if (not guild_name) and (ref_date == date.today()):
-            # 길드이름이 없는 경우, 오늘의 Data를 받아온다.
+        if (not guild_name):
+            # 길드이름이 없는 경우, 해당일의 Data를 받아온다.
             # print('-'*100)
             col_to_fetch = "guild_name, member_name"
             sql = f"""select {col_to_fetch} from opponent_guild_members_tb where match_date=%s"""

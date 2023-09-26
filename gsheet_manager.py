@@ -1,3 +1,5 @@
+import datetime
+import os
 import gspread
 import gspread_dataframe
 import pandas as pd
@@ -34,29 +36,39 @@ class gspreadsheet_manager:
     def update(self, which, where=None, what=None):
         if which in self.worksheets.keys():
             if not where:
-                self.worksheets[which].update(where, self.convert_dates_to_strings(what))
+                self.worksheets[which].update(where, self.data_preprocessing(what))
                 return True
             else:
-                self.worksheets[which].update(self.convert_dates_to_strings(what))
+                self.worksheets[which].update(self.data_preprocessing(what))
                 return True
         else:
             print(f"No such sheet:{which}")
             return False
     def update_sheet_with_df(self, which, what):
         return self.update(which, where=None, what=what)
-    def convert_dates_to_strings(self, df):
+    def data_preprocessing(self, df):
         df_copy = df.copy()  # Create a copy of the DataFrame to avoid modifying the original
-        date_columns = [cn for cn in df_copy.columns.tolist() if 'date' in cn]
-        print(f"columns including date data: {date_columns}")
-        for col in date_columns:
-            df_copy[col] = df_copy[col].astype(str)
-            # df_copy[col] = df_copy[col].dt.strftime('%Y-%m-%d')
+        date_columns = [cn for cn in df_copy.columns.tolist() if 'date' in str(cn)]
+        # print(f"columns including date data: {date_columns}")
+        # for col in date_columns:
+        #     df_copy[col] = df_copy[col].astype(str)
+        #     # df_copy[col] = df_copy[col].dt.strftime('%Y-%m-%d')
+        # convert datetime.date to string
+        df_copy = df_copy.applymap(lambda x: str(x) if type(x) == datetime.date else x)
+        # Convert int64 to int32
+        df_copy = df_copy.applymap(lambda x: int(x) if type(x) == np.int64 else x)
         return df_copy
 class sheet_manager_for_ffbe():
     def __init__(self):
         self.sheets = {}
         self.gm = gspreadsheet_manager()
-        self.json_path = r"D:\Python\board-for-ffbe-973785f1358b.json"
+        # self.json_path = r"D:\Python\board-for-ffbe-973785f1358b.json"
+        par_path = os.path.abspath('..')
+        json_file_name = 'board-for-ffbe-a9d6e94e060c.json'
+        self.json_path = os.path.join(par_path, json_file_name)
+        print(par_path)
+        print(json_file_name)
+        print(f"path: {self.json_path}")
         self.sheet_url = "https://docs.google.com/spreadsheets/d/1rSAyiMHyqeD-odGbJxF4TUlUZEMQp_so0Z6_2D6L6Hk/edit?pli=1#gid=1590214290"
         self.gm.set_json_path_and_url(self.json_path, self.sheet_url)
         print(self.gm.open_spreadsheet())
@@ -66,22 +78,21 @@ class sheet_manager_for_ffbe():
         # sheet_test.update(data.values.tolist())
     def open_sheets(self):
         sheets_to_open = [
-            'log', 'board', 'defenders', 'attackers', 'defender_board', 'attacker_board', 'score', 'test'
+            'other_stat', 'log', 'board', 'defenders', 'attackers', 'defender_board', 'attacker_board', 'score', 'test'
         ]
         for s in sheets_to_open:
             self.sheets[s] = self.gm.open_worksheet(s)
     def update_sheet_with_df(self, sheet_name, df):
-        df_str = self.gm.convert_dates_to_strings(df)
+        df_str = self.gm.data_preprocessing(df)
         return self.sheets[sheet_name].update([df_str.columns.tolist()] + df_str.values.tolist())
     def update_sheet_with_df_including_index(self, sheet_name, df):
-        gspread_dataframe.set_with_dataframe(self.sheets[sheet_name], df)
-        # df_str = self.gm.convert_dates_to_strings(df)
-        # print(df_str.dtypes)
-        # if len(df_str):
-        #     df_to_write = df_str.fillna('')
-        #     return self.sheets[sheet_name].update([[''] + df_to_write.columns.tolist()] + df_to_write.reset_index().values.tolist())
-        # else:
-        #     return False
+        df_str = self.gm.data_preprocessing(df)
+        print(df_str.dtypes)
+        if len(df_str):
+            df_to_write = df_str.fillna('')
+            return self.sheets[sheet_name].update([[''] + df_to_write.columns.tolist()] + df_to_write.reset_index().values.tolist())
+        else:
+            return False
 if __name__ == '__main__':
     gm = sheet_manager_for_ffbe()
     gm.open_sheets()
