@@ -1,11 +1,12 @@
 import datetime
+from datetime import datetime
 import os
 import gspread
 import gspread_dataframe
 import pandas as pd
 import numpy as np
 from datetime import date
-import json
+import re
 
 class gspreadsheet_manager:
     def __init__(self, gsheet=None):
@@ -62,20 +63,27 @@ class sheet_manager_for_ffbe():
     def __init__(self):
         self.sheets = {}
         self.gm = gspreadsheet_manager()
-        # self.json_path = r"D:\Python\board-for-ffbe-973785f1358b.json"
-        par_path = os.path.abspath('..')
-        json_file_name = 'board-for-ffbe-a9d6e94e060c.json'
-        self.json_path = os.path.join(par_path, json_file_name)
-        print(par_path)
-        print(json_file_name)
+        self.set_json_path()
         print(f"path: {self.json_path}")
         self.sheet_url = "https://docs.google.com/spreadsheets/d/1rSAyiMHyqeD-odGbJxF4TUlUZEMQp_so0Z6_2D6L6Hk/edit?pli=1#gid=1590214290"
         self.gm.set_json_path_and_url(self.json_path, self.sheet_url)
         print(self.gm.open_spreadsheet())
-        # sheet_name = 'test'
-        # sheet_test = gm.open_worksheet(sheet_name)
-        # data = pd.DataFrame(np.random.randint(0, 100, size=(5, 10)))
-        # sheet_test.update(data.values.tolist())
+        self.score_sheet_name = 'test'
+        self.score_df = None
+        self.defender_list = []
+
+    def set_json_path(self):
+        par_path = os.path.abspath('..')
+        json_file_name = r"board-for-ffbe-973785f1358b.json"
+        json_file_name2 = r'board-for-ffbe-a9d6e94e060c.json'
+        if os.path.exists(os.path.join(par_path, json_file_name)):
+            self.json_path = os.path.join(par_path, json_file_name)
+            return True
+        elif os.path.exists(os.path.join(par_path, json_file_name2)):
+            self.json_path = os.path.join(par_path, json_file_name2)
+            return True
+        else:
+            return False
     def open_sheets(self):
         sheets_to_open = [
             'other_stat', 'log', 'board', 'defenders', 'attackers', 'defender_board', 'attacker_board', 'score', 'test'
@@ -93,19 +101,26 @@ class sheet_manager_for_ffbe():
             return self.sheets[sheet_name].update([[''] + df_to_write.columns.tolist()] + df_to_write.reset_index().values.tolist())
         else:
             return False
+    def fetch_sheet_as_df(self, sheet_name):
+        res = self.sheets[sheet_name].get_all_values()
+        res_df = pd.DataFrame(res)
+        return res_df
+    def fetch_score_as_df(self):
+        res = self.sheets[self.score_sheet_name].get_all_values()
+        res[1] = map(lambda x: x.strip() if type(x) == str else x, res[1])
+        date_p = re.compile('[월]+.*[일]+')
+        res[1] = map(lambda x: self.convert_to_date(x) if re.findall(date_p, x) else x, res[1])
+        res_df = pd.DataFrame(res[2:], columns=res[1])
+        res_df.set_index('이름', inplace=True, drop=True)
+        self.score_df = res_df
+        self.defender_list = res_df.index.tolist()
+    def convert_to_date(self, date_str):
+        original_date = datetime.strptime(date_str, '%m월 %d일').date()
+        new_date = date(2023, original_date.month, original_date.day)
+        return new_date
 if __name__ == '__main__':
     gm = sheet_manager_for_ffbe()
     gm.open_sheets()
     data = pd.DataFrame(np.random.randint(0,100,size=(3,5)))
     gm.update_sheet_with_df('test', data)
     gm.update_sheet_with_df_including_index('attackers', data)
-
-    # json_path = r"D:\Python\board-for-ffbe-973785f1358b.json"
-    # sheet_url = "https://docs.google.com/spreadsheets/d/1rSAyiMHyqeD-odGbJxF4TUlUZEMQp_so0Z6_2D6L6Hk/edit?pli=1#gid=1590214290"
-    # gm.set_json_path_and_url(json_path, sheet_url)
-    # print(gm.open_spreadsheet())
-    # sheet_name = 'test'
-    # sheet_test = gm.open_worksheet(sheet_name)
-    # data = pd.DataFrame(np.random.randint(0,100,size=(5,10)))
-    # sheet_test.update(data.values.tolist())
-    # sheet_test.update('test_range', data.values.tolist())

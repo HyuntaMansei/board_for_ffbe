@@ -2,6 +2,7 @@ import mysql.connector
 import pandas
 import pandas as pd
 from datetime import date
+import gsheet_manager
 
 def connect_db():
     db_connection = mysql.connector.connect(
@@ -82,8 +83,8 @@ def write_df_to_server(table_name, df_to_write:pd.DataFrame):
         execute_sql_with_values(sql, tuple(d.tolist()))
 class BoardManager:
     def __init__(self):
-        pass
-
+        self.fm = gsheet_manager.sheet_manager_for_ffbe()
+        self.fm.open_sheets()
     def delete_log_in_server(self, ref_date):
         table_to_write = 'guild_battle_log_tb'
         sql_for_delete = f"""DELETE FROM {table_to_write} WHERE match_date = %s"""
@@ -125,10 +126,14 @@ class BoardManager:
                 df = fetch_data_with_col_names_as_df_with_value(sql, value)
                 return df
     def fetch_defenders(self):
-        sql = """select * from guild_members_tb where inuse='y';"""
-        data, columns = fetch_data_with_col_names(sql)
-        df = pandas.DataFrame(data, columns=columns)
-        return df
+        # sql = """select * from guild_members_tb where inuse='y';"""
+        # data, columns = fetch_data_with_col_names(sql)
+        # df = pandas.DataFrame(data, columns=columns)
+        res = self.fm.fetch_sheet_as_df('defenders')
+        res.columns = res.iloc[0]
+        res = res.iloc[1:]
+        print(res)
+        return res
     def write_attackers(self, attackers:pd.DataFrame=None, t_date=None):
         if t_date == date.today():
             # print("Today is the day, writing opponent's guild members.")
