@@ -50,9 +50,9 @@ class gspreadsheet_manager:
     def data_preprocessing(self, df):
         df_copy = df.copy()  # Create a copy of the DataFrame to avoid modifying the original
         date_columns = [cn for cn in df_copy.columns.tolist() if 'date' in str(cn)]
-        # print(f"columns including date data: {date_columns}")
-        # for col in date_columns:
-        #     df_copy[col] = df_copy[col].astype(str)
+        print(f"columns including date data: {date_columns}")
+        for col in date_columns:
+            df_copy[col] = df_copy[col].astype(str)
         #     # df_copy[col] = df_copy[col].dt.strftime('%Y-%m-%d')
         # convert datetime.date to string
         df_copy = df_copy.applymap(lambda x: str(x) if type(x) == datetime.date else x)
@@ -76,13 +76,18 @@ class sheet_manager_for_ffbe():
         par_path = os.path.abspath('..')
         json_file_name = r"board-for-ffbe-973785f1358b.json"
         json_file_name2 = r'board-for-ffbe-a9d6e94e060c.json'
+        json_file_name3 = 'board-for-ffbe-e800c4b8d402.json'
         if os.path.exists(os.path.join(par_path, json_file_name)):
             self.json_path = os.path.join(par_path, json_file_name)
             return True
         elif os.path.exists(os.path.join(par_path, json_file_name2)):
             self.json_path = os.path.join(par_path, json_file_name2)
             return True
+        elif os.path.exists(os.path.join(par_path, json_file_name3)):
+            self.json_path = os.path.join(par_path, json_file_name3)
+            return True
         else:
+            print("No json file exists.")
             return False
     def open_sheets(self):
         sheets_to_open = [

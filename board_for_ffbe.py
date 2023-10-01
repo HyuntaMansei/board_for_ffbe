@@ -116,7 +116,9 @@ def write_log(attacker=None, defender=None, stars=None):
     new_log = {
         "attack_count":st.session_state.attack_count, "attacker":attacker, "defender":defender, "stars":stars
     }
-    st.session_state.battle_log_df = st.session_state.battle_log_df.append(new_log, ignore_index=True)
+    new_log_df = pd.DataFrame([new_log])
+    st.session_state.battle_log_df = pd.concat([st.session_state.battle_log_df, new_log_df], ignore_index=True)
+    # st.session_state.battle_log_df = st.session_state.battle_log_df.append(new_log, ignore_index=True)
 def write_attackers(attackers_df:pd.DataFrame, guild_name=None):
     columns_to_write = [
         "inuse","guild_name","member_name", 'match_date'
@@ -226,7 +228,7 @@ def process_log():
         '우리획득':ally_point, '우리남공':ally_remaining_attacks, '우리새방덱':ally_new_def_count, '우리3별방덱':ally_3_def_count, '우리2별방덱':ally_2_def_count, '우리1별방덱':ally_1_def_count, '상대길드':opp_guild_name, '상대획득':opp_point, '상대남공':opp_remaining_attacks, '상대새방댁':opp_new_def_count, '상대3별방덱':opp_3_def_count, '상대2별방덱':opp_2_def_count,
         '상대1별방덱':opp_1_def_count
     }
-    other_stat[0] = new_stat
+    other_stat.loc[0] = new_stat
     print("Other_stat:")
     print(new_stat)
     print("----End----")
