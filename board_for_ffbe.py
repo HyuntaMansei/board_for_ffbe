@@ -1,3 +1,5 @@
+import datetime
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -13,10 +15,10 @@ battle_log_msg = None
 
 # 분류 values: 2공성공, 2공실패, 1공실패, 1공후대기, 공전대기
 col_for_attacker_board = ['분류','남공', '생존', '공횟', '총별', '1공별', '2공별', '1공상대', '2공상대']
-col_for_defender_board = ['잔별', '점수', '방횟', '1방', '2방', '3방', '4방', '5방']
+col_for_defender_board = ['점수','잔별', '방횟', '1방', '2방', '3방', '4방', '5방']
 columns_for_battle_log = ["attack_count", "attacker", "defender", "stars"]
 columns_for_attackers = ['guild_name', 'member_name']
-columns_for_other_stat = ['우리획득','우리남공','우리평균','우리3별방덱','우리2별방덱','우리1별방덱','상대길드','상대획득','상대남공','상대평균','상대3별방덱','상대2별방덱','상대1별방덱']
+columns_for_other_stat = ['우리획득','우리남공','우리평균','우리3별방덱','우리2별방덱','우리1별방덱','상대길드','상대획득','상대남공','상대평균','상대3별방덱','상대2별방덱','상대1별방덱', '우리인원', '상대인원']
 ref_date = None
 
 # Session variables
@@ -56,7 +58,7 @@ if 'ally_remaining_attacks' not in st.session_state:
     st.session_state.ally_remaining_attacks = 0
 ally_remaining_attacks = st.session_state.ally_remaining_attacks
 if 'opp_member_count' not in st.session_state:
-    st.session_state.opp_member_count = 0
+    st.session_state.opp_member_count = 30
 opp_member_count = st.session_state.opp_member_count
 ally_member_count = len(attackers)
 if not len(attacker_board):
@@ -224,11 +226,12 @@ def process_log():
     opp_3_def_count = 0
     opp_2_def_count = 0
     opp_1_def_count = 0
+
     new_stat = {
         '우리획득':ally_point, '우리남공':ally_remaining_attacks, '우리새방덱':ally_new_def_count, '우리3별방덱':ally_3_def_count, '우리2별방덱':ally_2_def_count, '우리1별방덱':ally_1_def_count, '상대길드':opp_guild_name, '상대획득':opp_point, '상대남공':opp_remaining_attacks, '상대새방댁':opp_new_def_count, '상대3별방덱':opp_3_def_count, '상대2별방덱':opp_2_def_count,
-        '상대1별방덱':opp_1_def_count
+        '상대1별방덱':opp_1_def_count, '우리인원':ally_member_count, '상대인원':opp_member_count
     }
-    other_stat.loc[0] = new_stat
+    other_stat.loc[str(datetime.date.today())] = new_stat
     print("Other_stat:")
     print(new_stat)
     print("----End----")
@@ -239,8 +242,6 @@ def write_to_sheet():
     sm.update_sheet_with_df_including_index('log', battle_log_df)
     sm.update_sheet_with_df_including_index('attacker_board', attacker_board)
     sm.update_sheet_with_df_including_index('defender_board', defender_board)
-    # print(other_stat)
-    # print(other_stat.dtypes)
     sm.update_sheet_with_df_including_index('other_stat', other_stat)
 def display_board():
     global ally_point, ally_remaining_attacks, opp_member_count
@@ -248,8 +249,10 @@ def display_board():
     divide_screen_as_default()
 
     # Opponent's Calculation
-    opp_point = attacker_board['총별'].sum()
-    opp_remaining_attacks = opp_member_count * 2 - attacker_board['공횟'].sum()
+    # opp_point = attacker_board['총별'].sum()
+    # opp_remaining_attacks = opp_member_count * 2 - attacker_board['공횟'].sum()
+    opp_point = 90 - defender_board['잔별'].sum()
+    opp_remaining_attacks = opp_member_count * 2 - defender_board['방횟'].sum()
 
     # Point Board
     divide_screen_as_default()
@@ -336,9 +339,10 @@ def setting_page():
         pass
     if cl1.button("공격자 불러오기"):
         res_df = fetch_attackers(guild_name=opp_guild_name, ref_date=ref_date)
-        if res_df is not None:
+        if len(res_df):
             st.session_state.attackers = res_df[columns_for_attackers]
             if not opp_guild_name:
+                print(res_df)
                 st.session_state.opp_guild_name = res_df['guild_name'].iloc[0]
         else:
             st.session_state.attackers = pd.DataFrame(columns=columns_for_attackers)
