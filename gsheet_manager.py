@@ -2,7 +2,6 @@ import datetime
 from datetime import datetime
 import os
 import gspread
-import gspread_dataframe
 import pandas as pd
 import numpy as np
 from datetime import date
