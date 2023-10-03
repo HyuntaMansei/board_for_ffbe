@@ -1,7 +1,6 @@
 mysql-connector-python
 screeninfo
-gsheet_manager
+gspread
 datetime
 copy
 re
-

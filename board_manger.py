@@ -1,5 +1,4 @@
 import mysql.connector
-import pandas
 import pandas as pd
 from datetime import date
 import gsheet_manager

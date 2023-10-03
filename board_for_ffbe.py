@@ -1,12 +1,11 @@
 import datetime
-
 import streamlit as st
 import pandas as pd
 import numpy as np
-import board_manger
-import gsheet_manager
 from datetime import date
 import copy
+import gsheet_manager
+import board_manger
 
 # Global variables
 cl, cl0, cl1, cl2, cl3 = None, None, None, None, None
