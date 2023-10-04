@@ -219,8 +219,8 @@ def process_log():
     ally_3_def_count = len(defender_board[(defender_board['방횟'] != 0) & (defender_board['잔별'] == 3)])
     ally_2_def_count = len(defender_board[(defender_board['방횟'] != 0) & (defender_board['잔별'] == 2)])
     ally_1_def_count = defender_board[(defender_board['방횟'] != 0) & (defender_board['잔별'] == 1)].shape[0]
-    opp_point = attacker_board['총별'].sum()
-    opp_remaining_attacks = opp_member_count*2 - attacker_board['공횟'].sum()
+    opp_point = 90 - defender_board['잔별'].sum()
+    opp_remaining_attacks = opp_member_count * 2 - defender_board['방횟'].sum()
     opp_new_def_count = 0
     opp_3_def_count = 0
     opp_2_def_count = 0
