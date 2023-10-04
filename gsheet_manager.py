@@ -99,7 +99,7 @@ class sheet_manager_for_ffbe():
             return False
     def open_sheets(self):
         sheets_to_open = [
-            'other_stat', 'log', 'board', 'defenders', 'attackers', 'defender_board', 'attacker_board', 'score', 'test'
+            'other_stat', 'log', 'defender_board', 'attacker_board', 'score', 'test'
         ]
         for s in sheets_to_open:
             self.sheets[s] = self.gm.open_worksheet(s)
