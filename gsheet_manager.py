@@ -85,6 +85,15 @@ class sheet_manager_for_ffbe():
         elif os.path.exists(os.path.join(par_path, json_file_name3)):
             self.json_path = os.path.join(par_path, json_file_name3)
             return True
+        elif os.path.exists(os.path.join('./', json_file_name)):
+            self.json_path = os.path.join('./', json_file_name)
+            return True
+        elif os.path.exists(os.path.join('./', json_file_name2)):
+            self.json_path = os.path.join('./', json_file_name2)
+            return True
+        elif os.path.exists(os.path.join('./', json_file_name3)):
+            self.json_path = os.path.join('./', json_file_name3)
+            return True
         else:
             print("No json file exists.")
             return False
