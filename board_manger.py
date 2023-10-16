@@ -117,7 +117,8 @@ class BoardManager:
                 latest_date = r[0]
             # print("Latest_date:", latest_date)
             if not latest_date:
-                return None
+                e_df = pd.DataFrame()
+                return e_df
             else:
                 value = (guild_name, latest_date)
                 col_to_fetch = "guild_name, member_name"

@@ -28,7 +28,7 @@ if 'battle_log_msg' not in st.session_state:
     st.session_state.battle_log_msg = []
 battle_log_msg = st.session_state.battle_log_msg
 if 'attack_count' not in st.session_state:
-    st.session_state.attack_count = 0
+    st.session_state.attack_count = 0.0
 attack_count = st.session_state.attack_count
 if 'battle_log_df' not in st.session_state:
     st.session_state.battle_log_df = pd.DataFrame(columns=columns_for_battle_log)
@@ -79,8 +79,6 @@ new_attackers = None
 if 'other_stat' not in st.session_state:
     st.session_state.other_stat = pd.DataFrame(columns=columns_for_other_stat)
 other_stat = st.session_state.other_stat
-print("Other template:")
-print(other_stat)
 def centered_header(header_text, cv=None):
     if not cv:
         cv = st
@@ -231,9 +229,6 @@ def process_log():
         '상대1별방덱':opp_1_def_count, '우리인원':ally_member_count, '상대인원':opp_member_count
     }
     other_stat.loc[str(datetime.date.today())] = new_stat
-    print("Other_stat:")
-    print(new_stat)
-    print("----End----")
 def write_to_sheet():
     sm = gsheet_manager.sheet_manager_for_ffbe()
     sm.open_sheets()
@@ -338,7 +333,7 @@ def setting_page():
         pass
     if cl1.button("공격자 불러오기"):
         res_df = fetch_attackers(guild_name=opp_guild_name, ref_date=ref_date)
-        if len(res_df):
+        if not res_df.empty:
             st.session_state.attackers = res_df[columns_for_attackers]
             if not opp_guild_name:
                 print(res_df)
@@ -348,9 +343,10 @@ def setting_page():
         st.session_state.attackers.reset_index(inplace=True, drop=True)
     if cl2.button("공격자 저장하기"):
         write_attackers(attackers_df=new_attackers, guild_name=opp_guild_name)
+        new_attackers['guild_name'] = opp_guild_name
         st.session_state.attackers = new_attackers
         try:
-            st.subheader(f"{len(st.session_state.attackers['member_name'].tolist())} names Saved.")
+            st.subheader(f"{len(st.session_state.attackers['member_name'].tolist())} names Saved with guild name: {opp_guild_name}.")
             st.write(f"Saved names: {st.session_state.attackers['member_name'].tolist()}")
         except:
             pass
@@ -362,13 +358,18 @@ def setting_page():
     if cl0.button("로그 저장"):
         new_battle_log_df['match_date'] = date.today()
         new_battle_log_df.sort_values(by='attack_count', inplace=True)
+        new_battle_log_df['attack_count'] = range(1, len(new_battle_log_df)+1)
         new_battle_log_df.reset_index(drop=True, inplace=True)
         bm.write_log_to_server(new_battle_log_df)
         st.session_state.battle_log_df = new_battle_log_df
     if cl1.button("로그 불러오기"):
         loaded_df = bm.fetch_guild_battle_log(ref_date)[columns_for_battle_log]
-        st.session_state.battle_log_df = loaded_df.reset_index(drop=True)
-        st.session_state.attack_count = st.session_state.battle_log_df['attack_count'].iloc[-1]
+        if loaded_df.empty:
+            st.session_state.battle_log_df = st.session_state.battle_log_df.iloc[0:0]
+            st.session_state.attack_count = 0
+        else:
+            st.session_state.battle_log_df = loaded_df.reset_index(drop=True)
+            st.session_state.attack_count = st.session_state.battle_log_df['attack_count'].iloc[-1]
     if cl2.button("로그 초기화"):
         if not st.session_state.battle_log_df.empty:
             st.session_state.battle_log_df = st.session_state.battle_log_df.iloc[0:0]
